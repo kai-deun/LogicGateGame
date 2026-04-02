@@ -1,0 +1,70 @@
+#pragma once
+
+#include "gate.h"
+
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define LG_MAX_GATES 64
+#define LG_MAX_OBJECTIVES 6
+
+typedef enum LevelId {
+    LEVEL_EASY = 0,
+    LEVEL_MEDIUM = 1,
+    LEVEL_HARD = 2,
+    LEVEL_COUNT = 3
+} LevelId;
+
+typedef struct LevelObjective {
+    char gate_id[LG_MAX_ID_LEN];
+    int expected_state;
+} LevelObjective;
+
+typedef struct LevelInfo {
+    LevelId id;
+    const char* key;
+    const char* label;
+    LevelObjective objectives[LG_MAX_OBJECTIVES];
+    size_t objective_count;
+} LevelInfo;
+
+typedef struct NodeSnapshot {
+    char id[LG_MAX_ID_LEN];
+    char type[16];
+    int state;
+    int toggleable;
+} NodeSnapshot;
+
+typedef enum ToggleStatus {
+    TOGGLE_OK = 0,
+    TOGGLE_MISSING = 1,
+    TOGGLE_NOT_TOGGLEABLE = 2
+} ToggleStatus;
+
+typedef struct Circuit {
+    Gate gates[LG_MAX_GATES];
+    size_t gate_count;
+    size_t eval_order[LG_MAX_GATES];
+    size_t eval_count;
+    LevelId current_level;
+    int unlocked[LEVEL_COUNT];
+    int won;
+} Circuit;
+
+void Circuit_Init(Circuit* circuit);
+void Circuit_SeedDemo(Circuit* circuit);
+void Circuit_LoadLevel(Circuit* circuit, LevelId level);
+ToggleStatus Circuit_ToggleSwitch(Circuit* circuit, const char* gate_id);
+size_t Circuit_Snapshot(const Circuit* circuit, NodeSnapshot* out_nodes, size_t capacity);
+int Circuit_IsWon(const Circuit* circuit);
+int Circuit_IsLevelUnlocked(const Circuit* circuit, LevelId level);
+const LevelInfo* Circuit_GetLevelInfo(LevelId level);
+const LevelInfo* Circuit_GetCurrentLevelInfo(const Circuit* circuit);
+int Circuit_LevelFromString(const char* text, LevelId* out_level);
+
+#ifdef __cplusplus
+}
+#endif
