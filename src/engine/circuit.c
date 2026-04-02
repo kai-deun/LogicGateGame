@@ -9,6 +9,7 @@ static const LevelInfo LG_LEVELS[LEVEL_COUNT] = {
         LEVEL_EASY,
         "easy",
         "Easy",
+        1,
         {
             {"Bulb1", 1}
         },
@@ -18,22 +19,29 @@ static const LevelInfo LG_LEVELS[LEVEL_COUNT] = {
         LEVEL_MEDIUM,
         "medium",
         "Medium",
+        2,
         {
+            {"SwitchA", 1},
+            {"SwitchB", 1},
             {"And1", 1},
+            {"NotA", 0},
             {"Bulb1", 1}
         },
-        2
+        5
     },
     {
         LEVEL_HARD,
         "hard",
         "Hard",
+        2,
         {
-            {"NotA", 0},
+            {"SwitchA", 0},
+            {"SwitchB", 0},
             {"And1", 0},
-            {"Bulb1", 0}
+            {"NotA", 1},
+            {"Bulb1", 1}
         },
-        3
+        5
     }
 };
 
@@ -119,6 +127,10 @@ static int Circuit_ComputeWinState(const Circuit* circuit) {
         }
     }
 
+    if (circuit->move_limit > 0 && circuit->move_count > circuit->move_limit) {
+        return 0;
+    }
+
     return 1;
 }
 
@@ -176,11 +188,11 @@ static void Circuit_ApplyLevelSeed(Circuit* circuit, LevelId level) {
         switch_a->state = 1;
         switch_b->state = 0;
     } else if (level == LEVEL_MEDIUM) {
-        switch_a->state = 1;
-        switch_b->state = 0;
-    } else {
         switch_a->state = 0;
         switch_b->state = 0;
+    } else {
+        switch_a->state = 1;
+        switch_b->state = 1;
     }
 }
 
@@ -202,8 +214,14 @@ void Circuit_LoadLevel(Circuit* circuit, LevelId level) {
     int unlocked_easy;
     int unlocked_medium;
     int unlocked_hard;
+    const LevelInfo* level_info;
 
     if (circuit == NULL || level < LEVEL_EASY || level >= LEVEL_COUNT) {
+        return;
+    }
+
+    level_info = Circuit_GetLevelInfo(level);
+    if (level_info == NULL) {
         return;
     }
 
@@ -212,9 +230,11 @@ void Circuit_LoadLevel(Circuit* circuit, LevelId level) {
     unlocked_hard = circuit->unlocked[LEVEL_HARD];
 
     memset(circuit, 0, sizeof(*circuit));
-    circuit->unlocked[LEVEL_EASY] = unlocked_easy ? 1 : 1;
+    circuit->unlocked[LEVEL_EASY] = 1;
     circuit->unlocked[LEVEL_MEDIUM] = unlocked_medium;
     circuit->unlocked[LEVEL_HARD] = unlocked_hard;
+    circuit->move_limit = level_info->move_limit;
+    circuit->move_count = 0;
 
     Circuit_BuildBaseNetwork(circuit);
     circuit->current_level = level;
@@ -240,6 +260,7 @@ ToggleStatus Circuit_ToggleSwitch(Circuit* circuit, const char* gate_id) {
     }
 
     gate->state = !gate->state;
+    circuit->move_count++;
     Circuit_Recompute(circuit);
     Circuit_RefreshWinAndUnlock(circuit);
     return TOGGLE_OK;

@@ -27,6 +27,7 @@ typedef struct LevelInfo {
     LevelId id;
     const char* key;
     const char* label;
+    size_t move_limit;
     LevelObjective objectives[LG_MAX_OBJECTIVES];
     size_t objective_count;
 } LevelInfo;
@@ -50,6 +51,8 @@ typedef struct Circuit {
     size_t eval_order[LG_MAX_GATES];
     size_t eval_count;
     LevelId current_level;
+    size_t move_count;
+    size_t move_limit;
     int unlocked[LEVEL_COUNT];
     int won;
 } Circuit;

@@ -93,6 +93,10 @@ size_t Json_BuildState(const Circuit* circuit, const NodeSnapshot* nodes, size_t
     offset = AppendEscaped(buffer, buffer_size, offset, current == NULL ? "Easy" : current->label);
     offset = AppendText(buffer, buffer_size, offset, "\",\"won\":");
     offset = AppendBool(buffer, buffer_size, offset, Circuit_IsWon(circuit));
+    offset = AppendText(buffer, buffer_size, offset, ",\"moves\":");
+    offset += snprintf(buffer + offset, buffer_size - offset, "%lu", (unsigned long) circuit->move_count);
+    offset = AppendText(buffer, buffer_size, offset, ",\"moveLimit\":");
+    offset += snprintf(buffer + offset, buffer_size - offset, "%lu", (unsigned long) circuit->move_limit);
 
     offset = AppendText(buffer, buffer_size, offset, ",\"unlocked\":{");
     for (i = 0; i < LEVEL_COUNT; ++i) {
@@ -146,7 +150,9 @@ size_t Json_BuildLevels(const Circuit* circuit, char* buffer, size_t buffer_size
         offset = AppendEscaped(buffer, buffer_size, offset, info->key);
         offset = AppendText(buffer, buffer_size, offset, "\",\"label\":\"");
         offset = AppendEscaped(buffer, buffer_size, offset, info->label);
-        offset = AppendText(buffer, buffer_size, offset, "\",\"unlocked\":");
+        offset = AppendText(buffer, buffer_size, offset, "\",\"moveLimit\":");
+        offset += snprintf(buffer + offset, buffer_size - offset, "%lu", (unsigned long) info->move_limit);
+        offset = AppendText(buffer, buffer_size, offset, ",\"unlocked\":");
         offset = AppendBool(buffer, buffer_size, offset, Circuit_IsLevelUnlocked(circuit, info->id));
         offset = AppendText(buffer, buffer_size, offset, "}");
     }
