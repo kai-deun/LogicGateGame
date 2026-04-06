@@ -1,6 +1,7 @@
 #include "embedded_assets.h"
 
 const char LG_INDEX_HTML[] =
+    /* Minimal shell for the game UI. */
     "<!DOCTYPE html>\n"
     "<html lang=\"en\">\n"
     "<head>\n"
@@ -72,6 +73,7 @@ const char LG_INDEX_HTML[] =
 const size_t LG_INDEX_HTML_LEN = sizeof(LG_INDEX_HTML) - 1;
 
 const char LG_STYLES_CSS[] =
+    /* Theme tokens and compact layout styles. */
     ":root {\n"
     "  --bg-0: #f4f6f8;\n"
     "  --bg-1: #e8edf2;\n"
@@ -212,6 +214,7 @@ const char LG_STYLES_CSS[] =
 const size_t LG_STYLES_CSS_LEN = sizeof(LG_STYLES_CSS) - 1;
 
 const char LG_APP_JS[] =
+    /* Poll the backend and keep the board in sync. */
     "const POLL_MS = 150;\n"
     "const statusNode = document.getElementById(\"status\");\n"
     "const movesNode = document.getElementById(\"moves\");\n"
