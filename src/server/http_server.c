@@ -4,6 +4,7 @@
 #include "json_state.h"
 #include "mongoose.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -40,11 +41,14 @@ static void ReplyError(struct mg_connection* c, int status, const char* message)
 
 static void HandleState(struct mg_connection* c, ServerContext* context) {
     NodeSnapshot nodes[LG_MAX_GATES];
+    EdgeSnapshot edges[LG_MAX_EDGES];
     size_t count;
+    size_t edge_count;
     char payload[LG_MAX_JSON];
 
     count = Circuit_Snapshot(context->circuit, nodes, LG_MAX_GATES);
-    Json_BuildState(context->circuit, nodes, count, payload, sizeof(payload));
+    edge_count = Circuit_SnapshotEdges(context->circuit, edges, LG_MAX_EDGES);
+    Json_BuildState(context->circuit, nodes, count, edges, edge_count, payload, sizeof(payload));
     mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s", payload);
 }
 
@@ -66,7 +70,7 @@ static void HandleSelectLevel(struct mg_connection* c, struct mg_http_message* h
     }
 
     if (!Circuit_LevelFromString(level_text, &level)) {
-        ReplyError(c, 400, "Invalid level value. Use easy, medium, or hard");
+        ReplyError(c, 400, "Invalid level value. Use level1 through level10");
         return;
     }
 
@@ -103,6 +107,51 @@ static void HandleToggle(struct mg_connection* c, struct mg_http_message* hm, Se
     HandleState(c, context);
 }
 
+static void HandleMove(struct mg_connection* c, struct mg_http_message* hm, ServerContext* context) {
+    char gate_id[LG_MAX_QUERY];
+    char x_text[LG_MAX_QUERY];
+    char y_text[LG_MAX_QUERY];
+    char* end = NULL;
+    float x;
+    float y;
+    MoveStatus status;
+
+    if (mg_http_get_var(&hm->query, "id", gate_id, sizeof(gate_id)) <= 0) {
+        ReplyError(c, 400, "Missing required query parameter: id");
+        return;
+    }
+
+    if (mg_http_get_var(&hm->query, "x", x_text, sizeof(x_text)) <= 0 ||
+        mg_http_get_var(&hm->query, "y", y_text, sizeof(y_text)) <= 0) {
+        ReplyError(c, 400, "Missing required query parameters: x and y");
+        return;
+    }
+
+    x = (float) strtod(x_text, &end);
+    if (end == NULL || *end != '\0') {
+        ReplyError(c, 400, "Invalid x coordinate");
+        return;
+    }
+
+    y = (float) strtod(y_text, &end);
+    if (end == NULL || *end != '\0') {
+        ReplyError(c, 400, "Invalid y coordinate");
+        return;
+    }
+
+    status = Circuit_MoveGate(context->circuit, gate_id, x, y);
+    if (status == MOVE_MISSING) {
+        ReplyError(c, 404, "Unknown gate id");
+        return;
+    }
+    if (status == MOVE_INVALID_COORDS) {
+        ReplyError(c, 400, "Invalid coordinate range");
+        return;
+    }
+
+    HandleState(c, context);
+}
+
 static void EventHandler(struct mg_connection* c, int ev, void* ev_data) {
     ServerContext* context = (ServerContext*) c->fn_data;
 
@@ -126,6 +175,11 @@ static void EventHandler(struct mg_connection* c, int ev, void* ev_data) {
 
         if (mg_strcmp(hm->uri, mg_str("/select-level")) == 0) {
             HandleSelectLevel(c, hm, context);
+            return;
+        }
+
+        if (mg_strcmp(hm->uri, mg_str("/move")) == 0) {
+            HandleMove(c, hm, context);
             return;
         }
 

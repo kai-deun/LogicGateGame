@@ -55,7 +55,15 @@ static size_t AppendEscaped(char* buffer, size_t capacity, size_t offset, const 
     return offset;
 }
 
-size_t Json_BuildState(const Circuit* circuit, const NodeSnapshot* nodes, size_t node_count, char* buffer, size_t buffer_size) {
+size_t Json_BuildState(
+    const Circuit* circuit,
+    const NodeSnapshot* nodes,
+    size_t node_count,
+    const EdgeSnapshot* edges,
+    size_t edge_count,
+    char* buffer,
+    size_t buffer_size
+) {
     size_t i;
     size_t offset = 0;
     const LevelInfo* current;
@@ -84,13 +92,29 @@ size_t Json_BuildState(const Circuit* circuit, const NodeSnapshot* nodes, size_t
         offset = AppendText(buffer, buffer_size, offset, node->state ? "true" : "false");
         offset = AppendText(buffer, buffer_size, offset, ",\"toggleable\":");
         offset = AppendText(buffer, buffer_size, offset, node->toggleable ? "true" : "false");
+        offset = AppendText(buffer, buffer_size, offset, ",\"x\":");
+        offset += snprintf(buffer + offset, buffer_size - offset, "%.4f", (double) node->x);
+        offset = AppendText(buffer, buffer_size, offset, ",\"y\":");
+        offset += snprintf(buffer + offset, buffer_size - offset, "%.4f", (double) node->y);
         offset = AppendText(buffer, buffer_size, offset, "}");
     }
 
+    offset = AppendText(buffer, buffer_size, offset, "],\"edges\":[");
+    for (i = 0; i < edge_count; ++i) {
+        if (i > 0) {
+            offset = AppendText(buffer, buffer_size, offset, ",");
+        }
+        offset = AppendText(buffer, buffer_size, offset, "{\"from\":\"");
+        offset = AppendEscaped(buffer, buffer_size, offset, edges[i].from_id);
+        offset = AppendText(buffer, buffer_size, offset, "\",\"to\":\"");
+        offset = AppendEscaped(buffer, buffer_size, offset, edges[i].to_id);
+        offset = AppendText(buffer, buffer_size, offset, "\"}");
+    }
+
     offset = AppendText(buffer, buffer_size, offset, "],\"level\":\"");
-    offset = AppendEscaped(buffer, buffer_size, offset, current == NULL ? "easy" : current->key);
+    offset = AppendEscaped(buffer, buffer_size, offset, current == NULL ? "level1" : current->key);
     offset = AppendText(buffer, buffer_size, offset, "\",\"levelLabel\":\"");
-    offset = AppendEscaped(buffer, buffer_size, offset, current == NULL ? "Easy" : current->label);
+    offset = AppendEscaped(buffer, buffer_size, offset, current == NULL ? "Level 1" : current->label);
     offset = AppendText(buffer, buffer_size, offset, "\",\"won\":");
     offset = AppendBool(buffer, buffer_size, offset, Circuit_IsWon(circuit));
     offset = AppendText(buffer, buffer_size, offset, ",\"moves\":");

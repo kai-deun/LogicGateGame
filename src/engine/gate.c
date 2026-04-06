@@ -15,6 +15,10 @@ const char* GateType_ToString(GateType type) {
         return "Not";
     case GATE_BULB:
         return "Bulb";
+    case GATE_NAND:
+        return "Nand";
+    case GATE_NOR:
+        return "Nor";
     default:
         return "Unknown";
     }
@@ -77,6 +81,26 @@ int Gate_Evaluate(Gate* gate) {
             result = result || (gate->inputs[i] != NULL && gate->inputs[i]->state);
         }
         gate->state = result;
+        return gate->state;
+
+    case GATE_NAND:
+        if (gate->input_count == 0) {
+            gate->state = 1;
+            return gate->state;
+        }
+        result = 1;
+        for (i = 0; i < gate->input_count; ++i) {
+            result = result && (gate->inputs[i] != NULL && gate->inputs[i]->state);
+        }
+        gate->state = !result;
+        return gate->state;
+
+    case GATE_NOR:
+        result = 0;
+        for (i = 0; i < gate->input_count; ++i) {
+            result = result || (gate->inputs[i] != NULL && gate->inputs[i]->state);
+        }
+        gate->state = !result;
         return gate->state;
 
     case GATE_NOT:

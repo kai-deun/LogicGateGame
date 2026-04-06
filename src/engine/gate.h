@@ -14,7 +14,9 @@ typedef enum GateType {
     GATE_AND = 1,
     GATE_OR = 2,
     GATE_NOT = 3,
-    GATE_BULB = 4
+    GATE_BULB = 4,
+    GATE_NAND = 5,
+    GATE_NOR = 6
 } GateType;
 
 typedef struct Gate {
@@ -22,6 +24,8 @@ typedef struct Gate {
     GateType type;
     int state;
     int toggleable;
+    float x;
+    float y;
     struct Gate* inputs[LG_MAX_INPUTS];
     size_t input_count;
 } Gate;
